@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オフ会告知サムネイル作成アプリ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic Pro', 'Yu Gothic', sans-serif;
+      background: #f0f0f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #E8923A;
+      color: #fff;
+      padding: 14px 24px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .app {
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1500px;
+      margin: 0 auto;
+      align-items: flex-start;
+    }
+
+    /* ── フォームパネル ── */
+    .form-panel {
+      width: 340px;
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #eee;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"], input[type="time"], input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #333;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="time"]:focus, input[type="date"]:focus {
+      outline: none;
+      border-color: #E8923A;
+    }
+
+    /* 日付行 */
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .date-row input[type="date"] { flex: 1; }
+    .date-preview {
+      font-size: 12px;
+      color: #E8923A;
+      font-weight: 700;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+    .btn-remove {
+      width: 26px; height: 26px;
+      background: #ffecec;
+      color: #e05050;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .btn-remove:hover { background: #ffd0d0; }
+
+    .btn-add {
+      width: 100%;
+      padding: 8px;
+      background: #fef6ee;
+      border: 1px dashed #E8923A;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #E8923A;
+      font-weight: 700;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .btn-add:hover { background: #fdebd8; }
+
+    /* 時間行 */
+    .time-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .time-row input { flex: 1; }
+    .time-sep { color: #999; font-size: 20px; }
+
+    /* カラーパレット */
+    .color-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .color-swatch {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .color-swatch:hover { transform: scale(1.1); }
+    .color-swatch.selected { border-color: #333; transform: scale(1.1); }
+
+    /* アイコンアップロード */
+    .upload-zone {
+      border: 2px dashed #ddd;
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-top: 6px;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #E8923A;
+      background: #fef6ee;
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #bbb;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    .upload-placeholder .icon { font-size: 28px; }
+
+    .upload-preview-wrap {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .upload-preview-wrap.visible { display: flex; }
+    .icon-preview {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #E8923A;
+      flex-shrink: 0;
+    }
+    .upload-preview-info { flex: 1; min-width: 0; }
+    .upload-preview-name {
+      font-size: 11px;
+      color: #555;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-remove-icon {
+      font-size: 11px;
+      color: #e05050;
+      background: #ffecec;
+      border: none;
+      border-radius: 5px;
+      padding: 3px 8px;
+      cursor: pointer;
+      margin-top: 4px;
+      font-family: inherit;
+    }
+    .btn-remove-icon:hover { background: #ffd0d0; }
+
+    /* アクションボタン */
+    .btn-generate {
+      width: 100%;
+      padding: 12px;
+      background: #E8923A;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .btn-generate:hover { background: #d07830; }
+
+    .btn-download {
+      width: 100%;
+      padding: 11px;
+      background: #fff;
+      color: #E8923A;
+      border: 2px solid #E8923A;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      font-family: inherit;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-download:hover { background: #E8923A; color: #fff; }
+
+    /* ── プレビューパネル ── */
+    .preview-panel {
+      flex: 1;
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #888;
+      margin-bottom: 14px;
+    }
+
+    #canvas {
+      width: 100%;
+      border-radius: 10px;
+      display: block;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .note {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* フォント読み込み中 */
+    #font-status {
+      font-size: 12px;
+      color: #E8923A;
+      margin-bottom: 10px;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<header>🎉 オフ会告知サムネイル作成アプリ</header>
+
+<div class="app">
+
+  <!-- ── フォームパネル ── -->
+  <div class="form-panel">
+
+    <div id="font-status">フォント読み込み中…</div>
+
+    <div class="section">
+      <div class="section-title">📅 開催日程</div>
+      <div id="dates-container"></div>
+      <button class="btn-add" onclick="addDate()">＋ 日付を追加</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🕐 時間</div>
+      <div class="time-row">
+        <input type="time" id="startTime" value="13:00" oninput="autoUpdate()">
+        <span class="time-sep">〜</span>
+        <input type="time" id="endTime" value="16:00" oninput="autoUpdate()">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📝 イベント情報</div>
+      <label>イベント名</label>
+      <input type="text" id="eventName" placeholder="例：1パスワード相談会" oninput="autoUpdate()">
+      <label>開催場所</label>
+      <input type="text" id="location" placeholder="例：名古屋オフィス" oninput="autoUpdate()">
+      <label>主催者名</label>
+      <input type="text" id="organizer" value="ぴーしば" oninput="autoUpdate()">
+      <label>サブタイトル（吹き出し）</label>
+      <input type="text" id="subtitle" placeholder="例：スプシの相談もOK" oninput="autoUpdate()">
+
+      <label>主催者アイコン画像</label>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="iconFile" accept="image/*" onchange="handleIconUpload(this.files[0])">
+        <div class="upload-placeholder" id="uploadPlaceholder">
+          <span class="icon">🖼️</span>
+          <span>クリックまたはドラッグ＆ドロップ</span>
+          <span>PNG・JPG・GIF など</span>
+        </div>
+      </div>
+      <div class="upload-preview-wrap" id="uploadPreviewWrap">
+        <img class="icon-preview" id="iconPreview" src="" alt="アイコンプレビュー">
+        <div class="upload-preview-info">
+          <div class="upload-preview-name" id="iconFileName"></div>
+          <button class="btn-remove-icon" onclick="removeIcon()">× 削除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🎨 背景色</div>
+      <div class="color-grid" id="colorGrid"></div>
+    </div>
+
+    <button class="btn-generate" onclick="generateThumbnail()">▶ プレビューを更新</button>
+    <button class="btn-download" onclick="downloadThumbnail()">💾 PNG でダウンロード</button>
+  </div>
+
+  <!-- ── プレビューパネル ── -->
+  <div class="preview-panel">
+    <div class="preview-title">プレビュー（1280 × 720 px）</div>
+    <canvas id="canvas" width="1280" height="720"></canvas>
+    <div class="note">ダウンロードボタンで高解像度 PNG を保存できます</div>
+  </div>
+
+</div>
+
+<script>
+// ==============================
+//  定数・設定
+// ==============================
+const DAYS = ['日','月','火','水','木','金','土'];
+
+const COLORS = [
+  { name: 'オレンジ',  hex: '#E8923A' },
+  { name: 'コーラル',  hex: '#E85A3A' },
+  { name: 'ピンク',    hex: '#D9508A' },
+  { name: 'パープル',  hex: '#7A5CD4' },
+  { name: 'ネイビー',  hex: '#2A4494' },
+  { name: 'ティール',  hex: '#2A9494' },
+  { name: 'グリーン',  hex: '#3A9450' },
+  { name: 'ブラウン',  hex: '#8B5E3C' },
+];
+
+let selectedColor = COLORS[0].hex;
+let dateCounter = 0;
+let fontsReady = false;
+let organizerImage = null;  // アップロードされたアイコン画像
+
+// ==============================
+//  初期化
+// ==============================
+window.addEventListener('DOMContentLoaded', () => {
+  buildColorGrid();
+  addDate();  // 最初の日付行
+  setupDragDrop();
+  waitForFonts();
+});
+
+function waitForFonts() {
+  const status = document.getElementById('font-status');
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.load('900 72px "Noto Sans JP"').then(() => {
+      return document.fonts.ready;
+    }).then(() => {
+      fontsReady = true;
+      status.textContent = '';
+      generateThumbnail();
+    }).catch(() => {
+      fontsReady = true;
+      status.textContent = '';
+      generateThumbnail();
+    });
+  } else {
+    setTimeout(() => {
+      fontsReady = true;
+      status.textContent = '';
+      generateThumbnail();
+    }, 800);
+  }
+}
+
+// ==============================
+//  カラーパレット
+// ==============================
+function buildColorGrid() {
+  const grid = document.getElementById('colorGrid');
+  COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c.hex === selectedColor ? ' selected' : '');
+    sw.style.background = c.hex;
+    sw.title = c.name;
+    sw.onclick = () => {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      selectedColor = c.hex;
+      generateThumbnail();
+    };
+    grid.appendChild(sw);
+  });
+}
+
+// ==============================
+//  日付行の追加・削除
+// ==============================
+function addDate() {
+  const container = document.getElementById('dates-container');
+  const id = ++dateCounter;
+  const row = document.createElement('div');
+  row.className = 'date-row';
+  row.id = `date-row-${id}`;
+
+  // 今日の日付をデフォルトに
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  const defaultDate = `${yyyy}-${mm}-${dd}`;
+
+  row.innerHTML = `
+    <input type="date" id="date-${id}" value="${defaultDate}"
+           oninput="updateDatePreview(${id}); autoUpdate()">
+    <span class="date-preview" id="preview-${id}">${formatDate(defaultDate)}</span>
+    <button class="btn-remove" onclick="removeDate(${id})" title="削除">×</button>
+  `;
+  container.appendChild(row);
+  generateThumbnail();
+}
+
+function removeDate(id) {
+  const row = document.getElementById(`date-row-${id}`);
+  if (row) {
+    // 最低1行は残す
+    const rows = document.querySelectorAll('.date-row');
+    if (rows.length <= 1) return;
+    row.remove();
+    generateThumbnail();
+  }
+}
+
+function updateDatePreview(id) {
+  const val = document.getElementById(`date-${id}`).value;
+  document.getElementById(`preview-${id}`).textContent = val ? formatDate(val) : '';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const dow = DAYS[d.getDay()];
+  return `${m}/${day}（${dow}）`;
+}
+
+function getDates() {
+  const results = [];
+  document.querySelectorAll('.date-row').forEach(row => {
+    const input = row.querySelector('input[type="date"]');
+    if (input && input.value) {
+      results.push(formatDate(input.value));
+    }
+  });
+  return results;
+}
+
+// ==============================
+//  アイコン画像アップロード
+// ==============================
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) handleIconUpload(file);
+  });
+}
+
+function handleIconUpload(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      organizerImage = img;
+
+      // フォーム内プレビュー表示
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      document.getElementById('uploadPreviewWrap').classList.add('visible');
+      document.getElementById('iconPreview').src = e.target.result;
+      document.getElementById('iconFileName').textContent = file.name;
+
+      generateThumbnail();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeIcon() {
+  organizerImage = null;
+  document.getElementById('iconFile').value = '';
+  document.getElementById('uploadPlaceholder').style.display = '';
+  document.getElementById('uploadPreviewWrap').classList.remove('visible');
+  document.getElementById('iconPreview').src = '';
+  document.getElementById('iconFileName').textContent = '';
+  generateThumbnail();
+}
+
+// ==============================
+//  自動更新
+// ==============================
+let autoTimer = null;
+function autoUpdate() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(generateThumbnail, 200);
+}
+
+// ==============================
+//  サムネイル描画
+// ==============================
+function generateThumbnail() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 1280, H = 720;
+
+  const dates     = getDates();
+  const startTime = document.getElementById('startTime').value || '13:00';
+  const endTime   = document.getElementById('endTime').value   || '16:00';
+  const eventName = document.getElementById('eventName').value.trim();
+  const location  = document.getElementById('location').value.trim();
+  const organizer = document.getElementById('organizer').value.trim();
+  const subtitle  = document.getElementById('subtitle').value.trim();
+  const bgColor   = selectedColor;
+
+  // フォントスタック
+  const FONT = '"Noto Sans JP", "Hiragino Kaku Gothic Pro", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── 背景 ──
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── 白いデコレーション（右下三角） ──
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(W, H * 0.4);
+  ctx.lineTo(W, H);
+  ctx.lineTo(W * 0.5, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // ── 日程カード（左〜中央） ──
+  const cardX = 24, cardY = 24, cardW = 810, cardH = 545;
+  drawRoundRect(ctx, cardX, cardY, cardW, cardH, 22, '#ffffff');
+
+  // 日付テキスト
+  const dateCount = dates.length;
+  let dateFontSize;
+  if (dateCount <= 1)      dateFontSize = 96;
+  else if (dateCount <= 2) dateFontSize = 86;
+  else if (dateCount <= 3) dateFontSize = 76;
+  else if (dateCount <= 4) dateFontSize = 68;
+  else                     dateFontSize = 56;
+
+  const lineH = dateFontSize * 1.35;
+  const totalH = dateCount * lineH - (lineH - dateFontSize);
+  const startY = cardY + (cardH - totalH) / 2 + dateFontSize * 0.78;
+
+  ctx.fillStyle = bgColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `900 ${dateFontSize}px ${FONT}`;
+
+  dates.forEach((date, i) => {
+    ctx.fillText(date, cardX + cardW / 2, startY + i * lineH);
+  });
+
+  // ── 時間パネル（右） ──
+  const tpX = 862, tpY = 50, tpW = 380;
+
+  // 開始時間ボックス
+  const boxH = 145;
+  drawRoundRect(ctx, tpX, tpY, tpW, boxH, 14, '#ffffff');
+  ctx.fillStyle = bgColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 64px ${FONT}`;
+  ctx.fillText(startTime, tpX + tpW / 2, tpY + boxH / 2);
+
+  // 矢印（90度右回転）
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `700 40px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.translate(tpX + tpW / 2, tpY + boxH + 44);
+  ctx.rotate(Math.PI / 2);
+  ctx.fillText('〜', 0, 0);
+  ctx.restore();
+
+  // 終了時間ボックス
+  const t2Y = tpY + boxH + 80;
+  drawRoundRect(ctx, tpX, t2Y, tpW, boxH, 14, '#ffffff');
+  ctx.fillStyle = bgColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 64px ${FONT}`;
+  ctx.fillText(endTime, tpX + tpW / 2, t2Y + boxH / 2);
+
+  // ── イベント名 ──
+  const bottomY = cardY + cardH + 20;
+  if (eventName) {
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `900 54px ${FONT}`;
+    ctx.fillText(eventName, W * 0.42, bottomY + 6);
+  }
+
+  // ── 場所 ──
+  if (location) {
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `700 36px ${FONT}`;
+    ctx.fillText(`in ${location}`, W * 0.42, bottomY + 72);
+  }
+
+  // ── 主催者（アイコン＋名前） ──
+  const iconD = 110;          // アイコン直径
+  const iconCX = W - 30 - iconD / 2;   // アイコン中心X
+  const iconCY = H - 22 - iconD / 2;   // アイコン中心Y
+
+  if (organizerImage) {
+    // 白い縁取り円
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(iconCX, iconCY, iconD / 2 + 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 円形にクリップして画像を描画
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(iconCX, iconCY, iconD / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(organizerImage,
+      iconCX - iconD / 2, iconCY - iconD / 2, iconD, iconD);
+    ctx.restore();
+
+    // 主催者名（アイコン左）
+    if (organizer) {
+      ctx.fillStyle = 'rgba(255,255,255,0.90)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 24px ${FONT}`;
+      ctx.fillText(`主催：${organizer}`, iconCX - iconD / 2 - 14, iconCY);
+    }
+  } else {
+    // アイコンなし → テキストのみ
+    if (organizer) {
+      ctx.fillStyle = 'rgba(255,255,255,0.80)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.font = `400 22px ${FONT}`;
+      ctx.fillText(`主催：${organizer}`, W - 26, H - 16);
+    }
+  }
+
+  // ── 吹き出し（サブタイトル） ──
+  if (subtitle) {
+    const bx = 36, by = cardY + cardH + 10;
+    const bw = measureBubbleWidth(ctx, subtitle, FONT) + 30;
+    const bh = 60;
+    const br = 14;
+
+    // 吹き出し本体
+    drawRoundRect(ctx, bx, by, bw, bh, br, '#ffffff');
+
+    // 吹き出しのしっぽ（上向き三角）
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(bx + 50, by - 1);
+    ctx.lineTo(bx + 30, by - 26);
+    ctx.lineTo(bx + 78, by - 1);
+    ctx.closePath();
+    ctx.fill();
+
+    // テキスト
+    ctx.fillStyle = '#333333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 26px ${FONT}`;
+    ctx.fillText(subtitle, bx + bw / 2, by + bh / 2 + 1);
+  }
+}
+
+function measureBubbleWidth(ctx, text, font) {
+  ctx.font = `700 26px ${font}`;
+  return Math.max(ctx.measureText(text).width, 160);
+}
+
+// 角丸矩形ヘルパー
+function drawRoundRect(ctx, x, y, w, h, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ==============================
+//  ダウンロード
+// ==============================
+function downloadThumbnail() {
+  generateThumbnail(); // 最新状態で描画
+  const canvas = document.getElementById('canvas');
+  const link = document.createElement('a');
+
+  const eventName = document.getElementById('eventName').value.trim();
+  const dates = getDates();
+  const firstDate = dates.length > 0 ? dates[0].replace(/[（）\/]/g, '') : 'thumbnail';
+  const filename = `サムネイル_${eventName || 'オフ会'}_${firstDate}.png`;
+
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
