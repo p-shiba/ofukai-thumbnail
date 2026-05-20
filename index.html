@@ -711,20 +711,22 @@ function generateThumbnail() {
 
   // ── 吹き出し（サブタイトル） ──
   if (subtitle) {
-    const bx = 36, by = cardY + cardH + 10;
     const bw = measureBubbleWidth(ctx, subtitle, FONT) + 30;
     const bh = 60;
     const br = 14;
+    const bx = 24;
+    const by = H - bh - 18;   // 左下に配置
 
     // 吹き出し本体
     drawRoundRect(ctx, bx, by, bw, bh, br, '#ffffff');
 
-    // 吹き出しのしっぽ（上向き三角）
+    // 吹き出しのしっぽ（右上向き三角 → イベント名方向）
+    const tailCX = bx + bw * 0.72;  // しっぽの中心X（上辺の右寄り）
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.moveTo(bx + 50, by - 1);
-    ctx.lineTo(bx + 30, by - 26);
-    ctx.lineTo(bx + 78, by - 1);
+    ctx.moveTo(tailCX - 22, by);
+    ctx.lineTo(tailCX + 30, by - 30);  // 右斜め上45度の先端
+    ctx.lineTo(tailCX + 22, by);
     ctx.closePath();
     ctx.fill();
 
