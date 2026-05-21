@@ -126,12 +126,47 @@
     }
     .btn-add:hover { background: #fdebd8; }
 
-    /* 時間行 */
+    /* 時間プリセット */
+    .time-presets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .time-preset-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px;
+      border: 2px solid #eee;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      color: #555;
+      transition: border-color 0.2s, background 0.2s;
+      width: 100%;
+      text-align: left;
+    }
+    .time-preset-btn.selected {
+      border-color: #E8923A;
+      background: #fef6ee;
+      color: #E8923A;
+      font-weight: 700;
+    }
+    .time-preset-btn:hover { border-color: #E8923A; }
+    .time-preset-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      flex-shrink: 0;
+    }
+    .time-preset-btn.selected .time-preset-dot {
+      border-color: #E8923A;
+      background: #E8923A;
+    }
+
+    /* 時間行（手動入力） */
     .time-row {
-      display: flex;
+      display: none;
       align-items: center;
       gap: 8px;
     }
+    .time-row.visible { display: flex; }
     .time-row input { flex: 1; }
     .time-sep { color: #999; font-size: 20px; }
 
@@ -307,10 +342,24 @@
 
     <div class="section">
       <div class="section-title">🕐 時間</div>
-      <div class="time-row">
-        <input type="time" id="startTime" value="13:00" oninput="autoUpdate()">
+      <div class="time-presets">
+        <button class="time-preset-btn selected" onclick="selectTimePreset('10:00','12:00',this)">
+          <span class="time-preset-dot"></span>10:00 〜 12:00
+        </button>
+        <button class="time-preset-btn" onclick="selectTimePreset('13:00','15:00',this)">
+          <span class="time-preset-dot"></span>13:00 〜 15:00
+        </button>
+        <button class="time-preset-btn" onclick="selectTimePreset('21:00','22:00',this)">
+          <span class="time-preset-dot"></span>21:00 〜 22:00
+        </button>
+        <button class="time-preset-btn" onclick="selectTimePreset('custom','custom',this)">
+          <span class="time-preset-dot"></span>その他（手動入力）
+        </button>
+      </div>
+      <div class="time-row" id="timeCustomRow">
+        <input type="time" id="startTime" value="10:00" oninput="autoUpdate()">
         <span class="time-sep">〜</span>
-        <input type="time" id="endTime" value="16:00" oninput="autoUpdate()">
+        <input type="time" id="endTime" value="12:00" oninput="autoUpdate()">
       </div>
     </div>
 
@@ -321,7 +370,7 @@
       <label>開催場所</label>
       <input type="text" id="location" placeholder="例：名古屋オフィス" oninput="autoUpdate()">
       <label>主催者名</label>
-      <input type="text" id="organizer" value="ぴーしば" oninput="autoUpdate()">
+      <input type="text" id="organizer" placeholder="例：あなたのリベネーム" oninput="autoUpdate()">
       <label>サブタイトル（吹き出し）</label>
       <input type="text" id="subtitle" placeholder="例：スプシの相談もOK" oninput="autoUpdate()">
 
@@ -549,6 +598,24 @@ function removeIcon() {
 }
 
 // ==============================
+//  時間プリセット選択
+// ==============================
+function selectTimePreset(start, end, btn) {
+  document.querySelectorAll('.time-preset-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  const customRow = document.getElementById('timeCustomRow');
+  if (start === 'custom') {
+    customRow.classList.add('visible');
+  } else {
+    customRow.classList.remove('visible');
+    document.getElementById('startTime').value = start;
+    document.getElementById('endTime').value   = end;
+    autoUpdate();
+  }
+}
+
+// ==============================
 //  自動更新
 // ==============================
 let autoTimer = null;
@@ -566,8 +633,8 @@ function generateThumbnail() {
   const W = 1280, H = 720;
 
   const dates     = getDates();
-  const startTime = document.getElementById('startTime').value || '13:00';
-  const endTime   = document.getElementById('endTime').value   || '16:00';
+  const startTime = document.getElementById('startTime').value || '10:00';
+  const endTime   = document.getElementById('endTime').value   || '12:00';
   const eventName = document.getElementById('eventName').value.trim();
   const location  = document.getElementById('location').value.trim();
   const organizer = document.getElementById('organizer').value.trim();
